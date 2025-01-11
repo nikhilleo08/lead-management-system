@@ -19,7 +19,6 @@ export class LeadService {
           histories: {
             create: {
               previousStatus: Status.NEW,
-              currentStatus: Status.NEW,
               actionDescription: "Initial lead creation",
               performedAt: new Date(),
               updatedById: userId,
@@ -37,11 +36,50 @@ export class LeadService {
   }
 
   /**
-   * Get all leads with their latest history entry.
+   * Get active leads (active in the last month) with pagination.
    */
-  async getLeads() {
+  async getLeads(page = 1, limit = 10) {
     try {
-      return await prisma.lead.findMany();
+      // Calculate the date one month ago
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      // Fetch active leads with pagination
+      const leads = await prisma.lead.findMany({
+        where: {
+          lastActionAt: {
+            gte: oneMonthAgo, // Leads active within the last month
+          },
+          status: {
+            not: Status.STALE, // Exclude stale leads
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          lastActionAt: "desc", // Sort by the latest activity
+        },
+      });
+
+      // Fetch total count for pagination metadata
+      const totalCount = await prisma.lead.count({
+        where: {
+          lastActionAt: {
+            gte: oneMonthAgo,
+          },
+          status: {
+            not: Status.STALE,
+          },
+        },
+      });
+
+      // Return leads with pagination metadata
+      return {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+        leads,
+      };
     } catch (error) {
       console.error("Error fetching leads:", error);
       throw new Error("Failed to fetch leads");
@@ -96,7 +134,6 @@ export class LeadService {
           histories: {
             create: {
               previousStatus: existingLead.status,
-              currentStatus: data.status || existingLead.status,
               actionDescription: data.lastAction || "Update performed",
               performedAt: new Date(),
               reason: data.reason,
@@ -113,7 +150,7 @@ export class LeadService {
       throw new Error("Failed to update lead");
     }
   }
-
+  // id, dateTime, state to track conversion metric which will let us understand where are we stuck from our side, we can answe question like are we taking 12 hours to complete, how many leads are going stale.
   /**
    * Mark a lead as stale and log the action.
    */
@@ -122,14 +159,11 @@ export class LeadService {
       if (!id || !reason || !userId)
         throw new Error("Lead ID, reason, and userId are required");
 
-      return await this.updateLead(
-        id,
-        {
-          status: Status.STALE,
-          reason,
-          lastAction: "Marked as stale",
-        },
-      );
+      return await this.updateLead(id, {
+        status: Status.STALE,
+        reason,
+        lastAction: "Marked as stale",
+      });
     } catch (error) {
       console.error("Error marking lead as stale:", error);
       throw new Error("Failed to mark lead as stale");
@@ -142,16 +176,15 @@ export class LeadService {
   async addFollowUp(id, nextFollowUp, reason, userId) {
     try {
       if (!id || !nextFollowUp || !reason || !userId)
-        throw new Error("Lead ID, nextFollowUp, reason, and userId are required");
+        throw new Error(
+          "Lead ID, nextFollowUp, reason, and userId are required"
+        );
 
-      return await this.updateLead(
-        id,
-        {
-          nextFollowUp,
-          reason,
-          lastAction: "Follow-up scheduled",
-        },
-      );
+      return await this.updateLead(id, {
+        nextFollowUp,
+        reason,
+        lastAction: "Follow-up scheduled",
+      });
     } catch (error) {
       console.error("Error adding follow-up:", error);
       throw new Error("Failed to add follow-up");

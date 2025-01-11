@@ -1,42 +1,48 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Status } from "@prisma/client";
 import cron from "node-cron";
 import envConfig from "../config";
+
 const prisma = new PrismaClient();
 
 const checkAndUpdateLeadStatus = async () => {
   console.log("Starting automated status update job...");
 
   try {
-    const leads = await prisma.lead.findMany();
-
     const now = new Date();
-    for (const lead of leads) {
-      if (
-        lead.status === "NEW" &&
-        lead.createdAt < new Date(now.getTime() - 12 * 60 * 60 * 1000)
-      ) {
-        await prisma.lead.update({
-          where: { id: lead.id },
-          data: {
-            status: "REQUIRES_FOLLOWUP",
-            lastAction: "No activity in 12 hours",
-          },
-        });
-        console.log(`Lead ${lead.id} updated to REQUIRES_FOLLOWUP.`);
-      }
 
-      if (
-        lead.status === "IN_PROGRESS" &&
-        lead.lastActionAt &&
-        lead.lastActionAt < new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
-      ) {
-        await prisma.lead.update({
-          where: { id: lead.id },
-          data: { status: "STALE", lastAction: "No activity in 3 days" },
-        });
-        console.log(`Lead ${lead.id} updated to STALE.`);
-      }
-    }
+    // Bulk update leads with status "NEW" and created more than 12 hours ago
+    const updatedNewLeads = await prisma.lead.updateMany({
+      where: {
+        status: Status.NEW,
+        createdAt: {
+          lt: new Date(now.getTime() - 12 * 60 * 60 * 1000), // 12 hours ago
+        },
+      },
+      data: {
+        status: Status.REQUIRES_FOLLOWUP,
+        lastAction: "No activity in 12 hours",
+        lastActionAt: now,
+      },
+    });
+    console.log(
+      `${updatedNewLeads.count} leads updated to REQUIRES_FOLLOWUP.`
+    );
+
+    // Bulk update leads with status "IN_PROGRESS" and no activity in 3 days
+    const updatedInProgressLeads = await prisma.lead.updateMany({
+      where: {
+        status: Status.IN_PROGRESS,
+        lastActionAt: {
+          lt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+        },
+      },
+      data: {
+        status: Status.STALE,
+        lastAction: "No activity in 3 days",
+        lastActionAt: now,
+      },
+    });
+    console.log(`${updatedInProgressLeads.count} leads updated to STALE.`);
   } catch (error) {
     console.log(`Error during automated status update: ${error.message}`);
   }

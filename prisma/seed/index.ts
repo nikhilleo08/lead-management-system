@@ -32,7 +32,6 @@ async function main() {
           histories: {
             create: {
               previousStatus: Status.NEW,
-              currentStatus: lead.status,
               actionDescription: "Initial creation",
               performedAt: new Date(),
               updatedById: "user2-id", // Assume "Bob Staff" created these leads
@@ -52,7 +51,6 @@ async function main() {
         data: {
           leadId: lead.id,
           previousStatus: lead.status,
-          currentStatus: Status.STALE,
           actionDescription: "Marked as stale",
           performedAt: new Date(),
           reason: "No response for a month",

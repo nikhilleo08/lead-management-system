@@ -32,7 +32,7 @@ export const internalServerError = (err, req: Request, res: Response, next: Next
     success: false,
     message: err.message,
     extra: err.extra, // Only include extra if it's available
-    errors: err.errors || {}, // Only include 'errors' if it exists
+    errors: err.error || {}, // Only include 'errors' if it exists
   });
   res.end();
 };

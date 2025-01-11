@@ -36,13 +36,9 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
     next();
   } catch (error) {
     console.error("Token Verification Error:", error);
-    next({ status: 403, ...error });
+    next({ status: 403, error: 'Invalid token', ...error });
   }
 };
-
-// import { NextFunction, Request } from "express";
-// import { decryptData } from "./encryption";
-// import jwt from "jsonwebtoken";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -52,34 +48,3 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-
-// export const authenticateToken = (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   const authHeader = req.headers["authorization"];
-//   const token = authHeader?.split(" ")[1];
-
-//   if (!token) {
-//     return res.status(401).json({ message: "No token provided" });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, envConfig.JWT_SECRET!) as {
-//       id: string;
-//       email: string;
-//       name: string;
-//     };
-
-//     const encryptionKey = envConfig.ENCRYPTION_KEY!;
-//     const decryptedEmail = decryptData(decoded.email, encryptionKey);
-//     const decryptedName = decryptData(decoded.name, encryptionKey);
-
-//     req.user = { id: decoded.id, email: decryptedEmail, name: decryptedName };
-//     next();
-//   } catch (error) {
-//     console.error("Token Verification Error:", error);
-//     res.status(403).json({ message: "Invalid or expired token" });
-//   }
-// };
