@@ -1,20 +1,28 @@
-import * as cors from "cors";
-import * as nocache from "nocache";
-import * as express from "express";
-import * as helmet from "helmet";
-import * as morgan from "morgan";
-import apiV1 from "./api-v1/index";
+import cors from "cors";
+import nocache from "nocache";
+import express from "express";
+import helmet from "helmet";
+import morgan from "morgan";
 import * as errorHandler from "./helpers/errorHandler";
-import home from "./home";
+import router from "./routes";
+import { PrismaClient } from "@prisma/client";
+import { useGoogleStrategy } from "./helpers/passport";
+import passport from "passport";
+import { startScheduler } from "./helpers/scheduler";
+import envConfig from './config'
 
 class App {
   public express: express.Application;
+  public prismaClient: PrismaClient;
 
   constructor() {
     this.express = express();
     this.setMiddlewares();
     this.setRoutes();
     this.catchErrors();
+    this.initializePassport();
+    startScheduler();
+    this.express.set('config', envConfig);
   }
 
   private setMiddlewares(): void {
@@ -25,11 +33,15 @@ class App {
     this.express.use(express.urlencoded({ extended: true }));
     this.express.use(helmet());
     this.express.use(express.static("public"));
+    this.express.use(passport.initialize());
+  }
+
+  private initializePassport(): void {
+    useGoogleStrategy();
   }
 
   private setRoutes(): void {
-    this.express.use("/", home);
-    this.express.use("/v1", apiV1);
+    this.express.use("/", router);
   }
 
   private catchErrors(): void {

@@ -1,8 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+generator docs {
+  provider = "node node_modules/prisma-docs-generator"
 }
 
 datasource db {
@@ -10,8 +12,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
-  id    Int     @id @default(autoincrement())
-  name  String? @db.VarChar(255)
-  phone String? @db.VarChar(255)
+model Lead {
+  id            String       @id @default(uuid())
+  name          String?
+  status        Status       @default(NEW)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  lastAction    String?
+  lastActionAt  DateTime?
+  reason        String?
+  nextFollowUp  DateTime?
+  histories     LeadHistory[]
+}
+
+model LeadHistory {
+  id              String    @id @default(uuid())
+  leadId          String
+  lead            Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  previousStatus  Status
+  currentStatus   Status
+  actionDescription String
+  performedAt     DateTime
+  reason          String?
+  updatedBy       User?     @relation("UpdatedByUsers", fields: [updatedById], references: [id])
+  updatedById     String?
+}
+
+model User {
+  id        String       @id @default(uuid())
+  name      String
+  email     String       @unique
+  role      Role         @default(STAFF)
+  createdAt DateTime     @default(now())
+  updates   LeadHistory[] @relation("UpdatedByUsers")
+}
+
+enum Status {
+  NEW
+  REQUIRES_FOLLOWUP
+  IN_PROGRESS
+  STALE
+  CLOSED
+}
+
+enum Role {
+  ADMIN
+  STAFF
 }
