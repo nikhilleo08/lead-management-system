@@ -1,5 +1,4 @@
 import cors from "cors";
-import nocache from "nocache";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -9,7 +8,6 @@ import { PrismaClient } from "@prisma/client";
 import { useGoogleStrategy } from "./helpers/passport";
 import passport from "passport";
 import { startScheduler } from "./helpers/scheduler";
-import envConfig from './config'
 
 class App {
   public express: express.Application;
@@ -22,13 +20,11 @@ class App {
     this.catchErrors();
     this.initializePassport();
     startScheduler();
-    this.express.set('config', envConfig);
   }
 
   private setMiddlewares(): void {
     this.express.use(cors());
     this.express.use(morgan("dev"));
-    this.express.use(nocache());
     this.express.use(express.json());
     this.express.use(express.urlencoded({ extended: true }));
     this.express.use(helmet());

@@ -1,73 +1,88 @@
 # # Stage 1: Build Stage
-# FROM node:18 AS build
+# FROM node:18-slim AS builder
 
-# # Set working directory inside the container
+# # Set working directory
 # WORKDIR /app
 
-# # Copy package.json and package-lock.json for installing dependencies
-# COPY package*.json ./
+# # Copy package.json and yarn.lock
+# COPY package.json yarn.lock ./
 
-# # Install dependencies (including dev dependencies)
+# # Install dependencies using Yarn
 # RUN yarn install
 
-# # Copy the rest of the application code
+# # Copy the source code
 # COPY . .
 
-# # Build the app (optional, for TypeScript or other build steps)
-# RUN yarn run build
+# # Compile TypeScript files (optional step)
+# RUN npx tsc
 
 # # Stage 2: Production Stage
 # FROM node:18-slim AS production
 
-# # Set working directory inside the container
+# # Install openssl
+# RUN apt-get update -y && apt-get install -y openssl
+
+# # Set working directory
 # WORKDIR /app
 
-# # Copy only the necessary files from the build stage
-# COPY --from=build /app/package*.json ./
-# COPY --from=build /app/dist ./dist # Only if you have a build folder (e.g., TypeScript or Webpack)
+# # Copy only necessary files from the builder stage
+# COPY --from=builder /app /app
 
-# # Install production dependencies only
-# RUN yarn install --production
+# # Install only production dependencies using Yarn
+# RUN yarn install
 
-# # Expose the port the app will run on
+# # Generate Prisma Client (ensure you're generating it here)
+# RUN npx prisma generate
+
+# # Expose the port that your application will run on
 # EXPOSE 3000
 
-# # Command to run the app (adjust if necessary)
+# # Start the application
 # CMD ["yarn", "start"]
 # Stage 1: Build Stage
-FROM node:18 AS builder
+FROM node:18-alpine AS builder
+
+# Install required tools for build (if necessary)
+RUN apk add --no-cache python3 make g++
 
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and yarn.lock
+# Copy only necessary files for dependency installation
 COPY package.json yarn.lock ./
 
-# Install dependencies using Yarn
-RUN yarn install
+# Install all dependencies
+RUN yarn install --frozen-lockfile
 
-# Copy the source code
+# Copy the application source code
 COPY . .
 
-# Generate Prisma Client (ensure you're generating it here)
-RUN npx prisma generate
-
-# Compile TypeScript files (optional step)
-RUN npx tsc
+# Build the application (if using TypeScript or Webpack)
+RUN yarn build
 
 # Stage 2: Production Stage
-FROM node:18 AS production
+FROM node:18-alpine AS production
+
+# Install only minimal packages for production
+RUN apk add --no-cache openssl
 
 # Set working directory
 WORKDIR /app
 
 # Copy only necessary files from the builder stage
-COPY --from=builder /app /app
+COPY --from=builder /app/prisma ./prisma 
+COPY --from=builder /app/dist ./dist 
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/yarn.lock ./
+COPY --from=builder /app/.env ./.env
 
-# Install only production dependencies using Yarn
-RUN yarn install --production
+# Install production dependencies only
+RUN yarn install --production --frozen-lockfile
 
-# Expose the port that your application will run on
+# Generate Prisma Client (if required)
+RUN npx prisma generate
+
+# Expose the application port
 EXPOSE 3000
 
 # Start the application
