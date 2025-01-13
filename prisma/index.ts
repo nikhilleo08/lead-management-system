@@ -1,7 +1,27 @@
-import { PrismaClient } from "@prisma/client";
+import envConfig from "../src/config";
+import { PrismaClient } from "./src/generated/client";
 
-const prismaClientLocal = new PrismaClient();
+let client: PrismaClient;
 
-prismaClientLocal.$connect();
+export const getClient = (dbURL?: string) => {
+  if (!client) {
+    client = new PrismaClient({
+      datasourceUrl: dbURL ? dbURL : envConfig.DATABASE_URL
+    });
+  }
+  return client;
+};
 
-export default prismaClientLocal;
+export async function connectToDB() {
+  let client = getClient();
+
+  await client
+    .$connect()
+    .then((res) => console.log("connected to db sucessfully"))
+    .catch((err) => {
+      console.log("Error in connecting to DB");
+      throw new Error(`DB connection failed: ${err.message}`);
+    });
+}
+
+export type Client = PrismaClient;

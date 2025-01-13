@@ -1,6 +1,7 @@
-import { PrismaClient, Status, Role } from "@prisma/client";
+import { Role, Status } from "@prisma/client";
+import { getClient } from '../'
 
-const prisma = new PrismaClient();
+const prisma = getClient();
 
 async function main() {
   console.log("Start seeding...");

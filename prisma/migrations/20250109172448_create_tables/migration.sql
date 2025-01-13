@@ -24,7 +24,6 @@ CREATE TABLE "LeadHistory" (
     "id" TEXT NOT NULL,
     "leadId" TEXT NOT NULL,
     "previousStatus" "Status" NOT NULL,
-    "currentStatus" "Status" NOT NULL,
     "actionDescription" TEXT NOT NULL,
     "performedAt" TIMESTAMP(3) NOT NULL,
     "reason" TEXT,

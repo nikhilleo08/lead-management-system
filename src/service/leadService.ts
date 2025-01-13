@@ -1,5 +1,6 @@
-import { PrismaClient, Status } from "@prisma/client";
-const prisma = new PrismaClient();
+import { getClient } from "../../prisma";
+import { Status } from "../../prisma/src/generated/client";
+const prisma = getClient();
 
 export class LeadService {
   /**
@@ -7,6 +8,13 @@ export class LeadService {
    */
   async createLead(name, userId) {
     try {
+      console.log(userId)
+      const user = await prisma.user.findFirst({
+        where: {
+          id: userId
+        }
+      });
+      console.log(user);
       if (!name || !userId) throw new Error("Name and userId are required");
 
       return await prisma.lead.create({

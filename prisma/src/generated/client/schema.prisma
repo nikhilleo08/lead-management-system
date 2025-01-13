@@ -1,0 +1,81 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema", "driverAdapters"]
+  output          = "./src/generated/client"
+}
+
+generator zod {
+  provider              = "zod-prisma"
+  output                = "./src/generated/zod"
+  relationModel         = true
+  modelCase             = "PascalCase"
+  modelSuffix           = "Schema"
+  useDecimalJs          = true
+  prismaJsonNullability = true
+}
+
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "./docs/prisma/datahub-job-prisma.md"
+  title    = "Lead Management App"
+}
+
+generator docs {
+  provider = "node node_modules/prisma-docs-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id           String        @id @default(uuid())
+  name         String?
+  status       Status        @default(NEW)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  lastAction   String?
+  lastActionAt DateTime?
+  reason       String?
+  nextFollowUp DateTime?
+  histories    LeadHistory[]
+
+  @@index([updatedAt, lastActionAt])
+}
+
+model LeadHistory {
+  id                String   @id @default(uuid())
+  leadId            String
+  lead              Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  previousStatus    Status
+  actionDescription String
+  performedAt       DateTime
+  reason            String?
+  updatedBy         User?    @relation("UpdatedByUsers", fields: [updatedById], references: [id])
+  updatedById       String?
+
+  @@index([leadId, updatedById, performedAt])
+}
+
+model User {
+  id        String        @id @default(uuid())
+  name      String
+  email     String        @unique
+  role      Role          @default(STAFF)
+  createdAt DateTime      @default(now())
+  updates   LeadHistory[] @relation("UpdatedByUsers")
+}
+
+enum Status {
+  NEW
+  REQUIRES_FOLLOWUP
+  IN_PROGRESS
+  STALE
+  CLOSED
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}

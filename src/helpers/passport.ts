@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import passport from "passport";
 import passportGoogle from "passport-google-oauth20";
 import envConfig from "../config";
-const prisma = new PrismaClient();
+import { getClient } from "../../prisma";
+const prisma = getClient();
 const GoogleStrategy = passportGoogle.Strategy;
 
 export function useGoogleStrategy() {
@@ -15,6 +15,7 @@ export function useGoogleStrategy() {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
+          console.log('PROFILE', profile);
           if (!profile._json.email) throw "User does not have email";
 
           let user = await prisma.user.findFirst({

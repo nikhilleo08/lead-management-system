@@ -12,7 +12,15 @@ http:
   # To match all requests you can use the "/" path.
   path: '/'
   # You can specify a custom health check path. The default is "/".
-  # healthcheck: '/'
+  healthcheck:
+    path: '/healthcheck'
+    success_codes: '200'
+    healthy_threshold: 3
+    unhealthy_threshold: 2
+    interval: 15s
+    timeout: 10s
+    grace_period: 120s
+
 
 # Configuration for your containers and service.
 image:
@@ -21,9 +29,9 @@ image:
   # Port exposed through your container to route traffic to it.
   port: 3000
 
-cpu: 256       # Number of CPU units for the task.
-memory: 512    # Amount of memory in MiB used by the task.
-count: 1       # Number of tasks that should be running in your service.
+cpu: 1024       # Number of CPU units for the task.
+memory: 2048    # Amount of memory in MiB used by the task.
+# count: 1       # Number of tasks that should be running in your service.
 exec: true     # Enable running commands in your container.
 network:
   connect: true # Enable Service Connect for intra-environment traffic between services.
@@ -33,6 +41,14 @@ network:
 secrets:
   DB_SECRET:
     from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-leadmanagementdevclusterAuroraSecret
+
+count:
+  range: 1-10
+  cooldown:
+    in: 60s
+    out: 30s
+  cpu_percentage: 70
+
 # storage:
   # readonly_fs: true       # Limit to read-only access to mounted root filesystems.
 

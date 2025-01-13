@@ -1,6 +1,23 @@
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema", "driverAdapters"]
+  output          = "./src/generated/client"
+}
+
+generator zod {
+  provider                 = "zod-prisma"
+  output                   = "./src/generated/zod"
+  relationModel            = true
+  modelCase                = "PascalCase"
+  modelSuffix              = "Schema"
+  useDecimalJs             = true
+  prismaJsonNullability    = true
+}
+
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "./docs/prisma/datahub-job-prisma.md"
+  title    = "Lead Management"
 }
 
 generator docs {

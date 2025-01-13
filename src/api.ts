@@ -7,7 +7,6 @@ import router from "./routes";
 import { PrismaClient } from "@prisma/client";
 import { useGoogleStrategy } from "./helpers/passport";
 import passport from "passport";
-import { startScheduler } from "./helpers/scheduler";
 
 class App {
   public express: express.Application;
@@ -37,6 +36,9 @@ class App {
   }
 
   private setRoutes(): void {
+    this.express.use("/healthcheck", (req, res) => {
+      res.status(200).send('Healthy');
+    });
     this.express.use("/", router);
   }
 
